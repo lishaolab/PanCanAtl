@@ -2,12 +2,24 @@ library(shiny)
 library(shinyWidgets)
 library(shinydashboard)
 library(shiny.router)
+library(stringr)
+library(tidyverse)
 
 options(shiny.port = 7777)
 
-options(shiny.host = "166.111.130.215")
+options(shiny.host = "127.0.0.1")
 
 getwd()
+
+if (FALSE) {
+  all_data <- list()
+  for (i in 1:26) {
+      all_data[[as.character(i)]] <-
+      readxl::read_excel(str_c("data/S", i, ".xlsx"))
+  }
+  saveRDS(all_data, "data/all_data.rds")
+}
+all_data <- readRDS("data/all_data.rds")
 
 home_page <- fluidPage(
     p("Through this application, it is intended to develop a learning
@@ -44,10 +56,45 @@ home_page <- fluidPage(
     style = "padding-left:40px;padding-right:40px"
 )
 
+browse_page <- fluidPage(
+  sidebarPanel(
+    width = 3,
+    checkboxGroupInput(
+      inputId = "browse_organ",
+      label = "Select organ",
+      choices = Reduce(
+        union,
+        map(1:3, ~unique(all_data[[.]]$Organ))
+      )
+    ),
+    # jstreeOutput("browse_tree_organ"),
+    # jstreeOutput("browse_tree_bulk"),
+  ),
+  sidebarPanel(
+    width = 9,
+    prettyRadioButtons(
+      "sc_bulk_choice",
+      choices = c(
+        "curated data",
+        "bulk",
+        "single-cell"),
+      label = "select experiment type",
+      inline = TRUE
+    ),
+    DT::dataTableOutput(
+      outputId = "data_overview"
+    )
+  )
+)
+
+
+
+
+
 router <- make_router(
-    route("/", home_page)
-    # route("browse", browse_page),
-    # route("bulk_dataset", bulk_page),
+    route("/", home_page),
+    route("browse", browse_page)
+    # route("bulk_dataset", bulk_page)
     # route("sc_dataset", sc_page),
     # route("search", search_page)
     # route("analyze", home_page),
@@ -103,8 +150,37 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-    router$server(input, output, session)
-
+  router$server(input, output, session)
+  observeEvent(list(input$sc_bulk_choice, input$browse_organ), {
+    req(input$sc_bulk_choice, input$browse_organ)
+    mapping <- c(
+      "curated data" = 1,
+      "bulk" = 2,
+      "single-cell" = 3
+    )
+    print(unlist(input$browse_organ))
+    print(length(input$browse_organ))
+    print(class(unlist(input$browse_organ)))
+    organ_for_overview  <- ((str(input$browse_organ)))
+    data_for_overview <-
+      all_data[[mapping[[input$sc_bulk_choice]]]] %>%
+      filter(Organ %in% organ_for_overview)
+    output$data_overview <- DT::renderDataTable({
+      DT::datatable(
+        data_for_overview,
+        options = list(
+          pageLength = 10,
+          scrollX = TRUE,
+          scrollY = "300px",
+          scrollCollapse = TRUE,
+          dom = "Bfrtip",
+          buttons = c(
+            "copy", "csv", "excel", "pdf", "print"
+            )
+        )
+      )
+    })
+  }, ignoreNULL = FALSE)
 }
 
 
