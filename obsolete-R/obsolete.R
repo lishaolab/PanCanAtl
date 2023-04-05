@@ -1084,3 +1084,46 @@ server <- function(input, output, session) {
     #         value = input$select_gene_button)
     # })
 }
+
+## chatgpt button
+
+    tags$div(
+      style="position: relative; width: 300px; height: 300px; margin: auto; border-radius: 50%; background: url('www/background.png') no-repeat center center; background-size: contain;",
+      circleButton(
+        id = "button1",
+        icon = icon("user"),
+        label = "Button 1",
+        color = "white",
+        size = "large",
+        width = "75px",
+        height = "75px",
+        iconWidth = "30px",
+        iconHeight = "30px",
+        circle = TRUE,
+        image = "www/image1.png",
+        imageWidth = "50px",
+        imageHeight = "50px",
+        labelPosition = "bottom",
+        status = "primary",
+        offset = "30%"
+      ),
+      circleButton(
+        id = "button2",
+        icon = icon("user"),
+        label = "Button 2",
+        color = "white",
+        size = "large",
+        width = "75px",
+        height = "75px",
+        iconWidth = "30px",
+        iconHeight = "30px",
+        circle = TRUE,
+        image = "www/image2.png",
+        imageWidth = "50px",
+        imageHeight = "50px",
+        labelPosition = "bottom",
+        status = "primary",
+        offset = "45%"
+      ),
+      # 添加更多的按钮...
+    )
