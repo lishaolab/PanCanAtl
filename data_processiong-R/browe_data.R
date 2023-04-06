@@ -2,6 +2,7 @@ library(tidyverse)
 library(stringr)
 library(DT)
 
+
 if (FALSE) {
     all_data <- list()
     for (i in 1:26) {
@@ -48,19 +49,41 @@ all_data[[1]]$Detail <- url_html_generate(
 
 
 ### S2
+all_data[[2]] <- readxl::read_excel("data/S2.xlsx")
 glimpse(all_data[[2]])
-dtall_data[[2]] %>%
+dt2 <- all_data[[2]] %>%
     mutate(
         `Accession ID` = url_html_generate(
             `Accession ID`,
             `Accession ID （超链接，不显示）`),
         `Detail (提供链接P4)` = NULL,
+        `Accession ID （超链接，不显示）` = NULL,
         Detail = url_html_generate(
             "View",
-            str_c("#!/browse/", `Project ID`), external = F
+            str_c("#!/browse/bulk?bulk_dataset=", `Project ID`), external = F
         )
     )
+datatable(dt2, escape = F)
+all_data[[2]] <- dt2
+
+
+
 ### S3
+glimpse(all_data[[3]])
+dt3 <- all_data[[3]] %>%
+  mutate(
+    `Accession ID` = url_html_generate(
+      `Accession ID`,
+      `Accession ID（超链接，不展示）`),
+    `Detail（提供超链接）` = NULL,
+    `Accession ID（超链接，不展示）` = NULL,
+    Detail = url_html_generate(
+      "View",
+      str_c("#!/browse/sc?sc_dataset=", `Project ID`), external = F
+    )
+  )
+datatable(dt3, escape = F)
+all_data[[3]] <- dt3
 
 ### S4
 dt4 <- all_data[[4]] %>%
@@ -96,6 +119,81 @@ dt4 <- all_data[[4]] %>%
 
 datatable(t(dt4), escape = F)
 all_data[[4]] <- dt4
-saveRDS(all_data, "data/all_data.rds")
 
+### S5
+glimpse(all_data[[5]])
+### S6
+glimpse(all_data[[6]])
+all_data[[6]] <- readxl::read_excel("data/S6.xlsx")
+plot_data <- all_data[[6]] %>%
+    rename(
+        pvalue = `log10(FDR)`,
+        log2FoldChange = `log2(FoldChange)`,
+        up_down = Color.列表不显示.
+    )
+all_data[[6]] <- plot_data
+
+### S7
+glimpse(all_data[[7]])
+all_data[[7]] %>%
+  rename(
+    expr_mean = `Mean Expression Value`,
+  ) -> all_data[[7]]
+all_data[[7]] %>%
+  filter(`Project ID` == "CRC_bulk_2") %>%
+  group_by(Gene, Organ, `Project ID`, Direction, FDR) %>%
+  pivot_wider(names_from = `Disease Name`, values_from = expr_mean )
+
+### S8
+
+
+### S9
+glimpse(all_data[[9]])
+
+
+
+### S11
+glimpse(all_data[[11]])
+all_data[[11]] %>%
+  rename(
+    TSNE_1 = `Component 1`,
+    TSNE_2 = `Component 2`,
+    cell_id = `Cell ID`,
+    lesion = `Disease Lesion`,
+    cell_type = `Cell Type`
+  ) %>%
+  mutate(TSNE_1 = as.numeric(TSNE_1), TSNE_2 = as.numeric(TSNE_2)) -> all_data[[11]]
+all_data[[11]] %>%
+  filter(`Project ID` == "BLCA_sc_1") %>%
+  hchart(
+    "scatter",
+    hcaes(
+      x = TSNE_1,
+      y = TSNE_2,
+      group = cell_type
+    )
+  ) %>%
+  hc_tooltip(
+    useHTML = T,
+    formatter = JS("
+                function() {
+                    outHTML = '<b>Cell ID</b>: ' + this.point.cell_id +
+                    '<br> <b>Disease lesion</b>: ' + this.point.lesion +
+                    '<br> <b>Soruce organ</b>: ' + this.point.Organ +
+                    '<br> <b>Cell type</b>: ' + this.point.cell_type
+                    return(outHTML)
+                }
+                ")) %>%
+  hc_plotOptions(
+    scatter = list(
+      marker = list(
+        radius = 2.5
+      )
+    )) %>%
+  hc_xAxis(
+    title = list(text = "Component 1")) %>%
+  hc_yAxis(
+    title = list(text = "Component 2"))
+
+saveRDS(all_data, "data/all_data.rds")
 
