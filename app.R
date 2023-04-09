@@ -3,6 +3,7 @@ suppressPackageStartupMessages({
   library(shinyWidgets)
   library(shinydashboard)
   library(shiny.router)
+  library(shinyjs)
   library(stringr)
   library(tidyverse)
   library(jsTreeR)
@@ -193,6 +194,7 @@ browse_sc_page <- fluidPage(
         style = "text-align: center;"
       ),
       fluidRow(
+        tags$style(".highchart-container {min-height: 400px;}"),
         column(
           width = 6,
           h4("Cell clusters",
@@ -264,6 +266,154 @@ browse_sc_page <- fluidPage(
   )
 )
 
+search_page <- fluidPage(
+  tags$head(
+    tags$style(HTML("
+      .column-divider {
+        border-left: 1px solid #ccc;
+        padding-left: 10px;
+        margin-left: 10px;
+      }
+    "))
+  ),
+  fluidRow(
+    column(
+      width = 4,
+      h4("Search by gene",
+        style = "text-align: center;"
+      ),
+      tags$head(
+        tags$style(HTML("
+      .search-container {
+        display: flex;
+        align-items: center;
+      }
+      .search-btn {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+      }
+    "))
+      ),
+      fluidRow(
+        column(
+          9,
+          tags$div(
+            class = "search-container",
+            selectizeInput("search_gene",
+              "Search for a gene:",
+              choices = c("GeneA", "GeneB", "GeneC"),
+              multiple = FALSE,
+              width = "100%",
+              options = list(create = TRUE)
+            ),
+            tags$button(
+              icon("search"),
+              class = "search-btn",
+              id = "search_gene_btn",
+              onclick = "Shiny.onInputChange('searchBtnClicked', Math.random())"
+            )
+          )
+        )
+      )
+    ),
+    column(
+      width = 4,
+      h4("Search by organ",
+        style = "text-align: center;"
+      ),
+      selectizeInput(
+        inputId = "search_organ",
+        label = "Organ",
+        choices = c(""),
+        options = list(
+          valueField = "id",
+          labelField = "name",
+          searchField = "name",
+          create = FALSE,
+          maxItems = 1,
+          placeholder = "Input organ"
+        )
+      )
+    ),
+    column(
+      width = 4,
+      h4("Search by project",
+        style = "text-align: center;"
+      ),
+      selectizeInput(
+        inputId = "search_project",
+        label = "Project ID",
+        choices = c(""),
+        options = list(
+          valueField = "id",
+          labelField = "name",
+          searchField = "name",
+          create = FALSE,
+          maxItems = 1,
+          placeholder = "Input project"
+        )
+      )
+    )
+  ),
+  p(
+    "Search notes:
+        The PreAtlas provides three main search modules, including",
+    strong("Search by gene, Search by organ, Search by project."),
+    " Here, the Search by gene module enable to provide basic ",
+    "information, associated organs or",
+    " premalignant diseases, ",
+    "associated cell types, associated drugs and network ",
+    "associations for any input gene symbol or Entrez ID. The",
+    strong("Seach by organ"),
+    "module enable to provide curated related transcriptomic ",
+    "datasets,  associated cellular components and their ",
+    "proportions, associated dynamic genes and associated ",
+    "therapeutic drugs for diverse",
+    " premalignant disease of any ",
+    "input organ.",
+    style = "text-align:justify;color:black;background-color:lavender;
+          padding:15px;border-radius:10px"
+  )
+)
+
+search_gene_page <- fluidPage(
+  h3("Search gene", style = "text-align: center;"),
+  textOutput("gene_name_text"),
+  fluidRow(
+    column(
+      width = 6,
+      h4("Basic information",
+        style = "text-align: center;"
+      ),
+      # dataTableOutput("gene_basic_table"),
+      uiOutput("gene_basic_table"),
+      h4("Basic information 2",
+        style = "text-align: center;"
+      ),
+      h5("Curated knowledges", style = "text-align: center;"),
+      dataTableOutput("gene_knowledge_table"),
+      h5("Omics-derived", style = "text-align: center;"),
+      dataTableOutput("gene_omics_table")
+    ),
+    column(
+      width = 6,
+      h4("Associated cell types",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("gene_celltype_table"),
+      h4("Associated drugs",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("gene_drug_table"),
+      h4("Multiple network neighbours",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("gene_network_table")
+    )
+  )
+)
+
 pages <- list()
 pages[["/"]] <- home_page
 pages[["browse"]] <- browse_page
@@ -277,6 +427,8 @@ for (i in 1:nrow(all_data[[4]])) {
 }
 pages[["browse/bulk"]] <- browse_bulk_page
 pages[["browse/sc"]] <- browse_sc_page
+pages[["search"]] <- search_page
+pages[["search/gene"]] <- search_gene_page
 
 routes_list <- lapply(seq_along(pages), function(i) {
   route(names(pages)[i], pages[[i]])
@@ -322,6 +474,7 @@ make_nodes <- function(leaves) {
 }
 
 ui <- fluidPage(
+  useShinyjs(),
   div(tags$img(src = "img/banner.jpg", width = "100%")),
   tags$ul(
     tags$li(a(href = route_link("/"), icon("home"), "Home")),
@@ -441,8 +594,11 @@ server <- function(input, output, session) {
       })
     })
   })
+
+  # Browse page for sc and bulk
   observe({
     query_param <- shiny.router::get_query_param()
+    ## Render bulk data according to bulk_dataset
     if (!is.null(query_param$bulk_dataset)) {
       bulk_id <- query_param$bulk_dataset[1]
       if (bulk_id %in% all_data[[2]]$`Project ID`) {
@@ -641,6 +797,9 @@ server <- function(input, output, session) {
         })
       }
     }
+
+
+    ## Render sc data according to sc_dataset
     if (!is.null(query_param$sc_dataset)) {
       sc_id <- query_param$sc_dataset[1]
       if (sc_id %in% all_data[[3]]$`Project ID`) {
@@ -722,8 +881,265 @@ server <- function(input, output, session) {
               title = list(text = "Component 2")
             )
         })
+        ### Marker
+        hp_data <- all_data[[12]] %>%
+          filter(`Project ID` == sc_id) %>%
+          mutate(
+            cell_type_idx = match(cell_type, unique(cell_type)) - 1,
+            Gene_idx = match(Gene, unique(Gene)) - 1,
+            z_score = ave(expr_mean, Gene, FUN = function(x) {
+              (x - mean(x)) / sd(x)
+            })
+          )
+
+
+        output$sc_marker_hc <- renderHighchart({
+          highchart() %>%
+            hc_chart(type = "heatmap") %>%
+            hc_title(text = "Heatmap") %>%
+            hc_xAxis(
+              title = list(text = "Cell type"),
+              categories = unique(hp_data$cell_type)
+            ) %>%
+            hc_yAxis(
+              title = list(text = "Marker gene"),
+              categories = unique(hp_data$Gene)
+            ) %>%
+            hc_colorAxis(
+              min = min(hp_data$z_score),
+              max = max(hp_data$z_score),
+              stops = color_stops(10, colors = c("purple", "black", "yellow"))
+            ) %>%
+            hc_add_series(
+              data = list_parse2(hp_data[c(
+                "cell_type_idx",
+                "Gene_idx", "z_score"
+              )]),
+              mapping = hcaes(
+                x = cell_type_idx,
+                y = Gene_idx,
+                value = z_score
+              ),
+              name = "Value",
+              borderWidth = 1
+            ) %>%
+            hc_tooltip(
+              useHTML = T,
+              formatter = JS("
+                function() {
+                    outHTML = '<b>Gene</b>: ' +
+                    this.point.series.yAxis.categories[this.point.y] +
+                    '<br> <b>Cell type</b>: ' +
+                    this.point.series.xAxis.categories[this.point.x] +
+                    '<br> <b>Mean expression</b>: ' + this.point.value
+                    return(outHTML)
+                }
+                ")
+            )
+        })
+        output$sc_marker_table <- DT::renderDataTable({
+          DT::datatable(
+            all_data[[12]] %>%
+              filter(`Project ID` == sc_id) %>%
+              group_by(`Project ID`, Gene) %>%
+              pivot_wider(
+                names_from = cell_type,
+                values_from = expr_mean
+              ),
+            options = list(
+              pageLength = 100,
+              info = FALSE,
+              scrollX = TRUE,
+              scrollY = "300px",
+              scrollCollapse = TRUE,
+              dom = "Bfrtip",
+              buttons = c("copy", "csv", "excel", "pdf", "print")
+            ),
+            escape = FALSE,
+            selection = "none"
+          )
+        })
+
+        ### Cell proportions
+        sc_ppt_data <- all_data[[14]] %>%
+          filter(`Project ID` == sc_id)
+        output$sc_proportion_hc <- renderHighchart({
+          highchart() %>%
+            hc_chart(type = "column") %>%
+            hc_xAxis(categories = unique(sc_ppt_data$lesion)) %>%
+            hc_yAxis(title = list(text = "Proportion"), min = 0, max = 1) %>%
+            hc_plotOptions(column = list(stacking = "normal")) %>%
+            hc_add_series(
+              sc_ppt_data, "column",
+              hcaes(
+                x = lesion, y = cell_proportion,
+                group = cell_type, custom = cell_count
+              )
+            ) %>%
+            hc_plotOptions(
+              column = list(
+                stacking = "normal",
+                pointPadding = 0
+              )
+            ) %>%
+            hc_legend(reversed = TRUE)
+        })
+        output$sc_proportion_table <- DT::renderDataTable({
+          DT::datatable(
+            sc_ppt_data %>%
+              group_by(cell_type, `Project ID`, Organ) %>%
+              mutate(
+                chi_square_test = NULL,
+                cell_proportion = NULL
+              ) %>%
+              pivot_wider(
+                names_from = lesion,
+                values_from = cell_count
+              ),
+            options = list(
+              pageLength = 100,
+              info = FALSE,
+              scrollX = TRUE,
+              scrollY = "300px",
+              scrollCollapse = TRUE,
+              dom = "Bfrtip",
+              buttons = c("copy", "csv", "excel", "pdf", "print")
+            ),
+            escape = FALSE,
+            selection = "none"
+          )
+        })
+
+        ### Traj
+        sc_tjc_dt <- all_data[[15]] %>%
+          filter(`Project ID` == "BLCA_sc_1")
+        output$sc_traj_hc <- renderHighchart({
+          sc_tjc_dt %>%
+            hchart(
+              "scatter",
+              hcaes(
+                x = component1,
+                y = component2,
+                group = lesion
+              )
+            ) %>%
+            hc_tooltip(
+              useHTML = T,
+              formatter = JS("
+                function() {
+                    outHTML = '<b>Pseudotime</b>: ' + this.point.value +
+                    '<br> <b>Disease lesion</b>: ' + this.point.lesion
+                    return(outHTML)
+                }
+                ")
+            ) %>%
+            hc_plotOptions(
+              scatter = list(
+                marker = list(
+                  radius = 2.5
+                )
+              )
+            ) %>%
+            hc_xAxis(
+              title = list(text = "Component 1")
+            ) %>%
+            hc_yAxis(
+              title = list(text = "Component 2")
+            )
+        })
+        output$sc_traj_table <- DT::renderDataTable({
+          DT::datatable(
+            sc_tjc_dt,
+            options = list(
+              pageLength = 100,
+              info = FALSE,
+              scrollX = TRUE,
+              scrollY = "300px",
+              scrollCollapse = TRUE,
+              dom = "Bfrtip",
+              buttons = c("copy", "csv", "excel", "pdf", "print")
+            ),
+            escape = FALSE,
+            selection = "none"
+          )
+        })
       }
     }
+
+
+    ## Render search gene
+    if (!is.null(query_param$gene_query)) {
+      print(str_c("gene query listened! ", query_param$gene_query))
+      query_gene <- query_param$gene_query[1]
+      if (query_gene %in% all_data[[17]]$Gene) {
+        output$gene_name_text <- renderText({
+          query_gene
+        })
+
+        output$gene_basic_table <- renderUI({
+          filtered_data <- all_data[[17]] %>%
+            filter(Gene == query_gene)
+          print(as.character(filtered_data[1,5]))
+          table <- tags$table(
+            style = "width: 100%;",
+            lapply(seq_along(filtered_data), function(i) {
+              tags$tr(
+                tags$th(
+                  style = "
+            text-align: right;
+            font-weight: bold;
+            width: 50%;
+            padding: 10px;
+            margin-right: -10px;
+          ",
+                  colnames(filtered_data)[i]
+                ),
+                tags$td(
+                  style = "padding: 10px;",
+                  HTML(as.character(filtered_data[1, i]))
+                )
+              )
+            })
+          )
+
+          table
+        })
+
+        output$gene_knowledge_table <- renderDataTable(
+          datatable(
+            all_data[[18]] %>%
+              filter(Gene == query_gene),
+            options = list(
+              pageLength = 100,
+              info = FALSE,
+              scrollX = TRUE,
+              scrollY = "300px",
+              scrollCollapse = TRUE,
+              dom = "Bfrtip",
+              buttons = c("copy", "csv", "excel", "pdf", "print")
+            ),
+            escape = FALSE,
+            selection = "none"
+          )
+        )
+      }
+    }
+  })
+
+  # Search page
+  updateSelectizeInput(
+    session,
+    "search_gene",
+    choices = unique(all_data[[17]]$Gene),
+    server = T
+  )
+  observeEvent(input$searchBtnClicked, {
+    target_url <- paste0(
+      "#!/search/gene?gene_query=",
+      input$search_gene
+    )
+    print(target_url)
+    runjs(sprintf("window.open('%s', '_self')", target_url))
   })
 }
 

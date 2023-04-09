@@ -163,24 +163,47 @@ all_data[[11]] %>%
     cell_type = `Cell Type`
   ) %>%
   mutate(TSNE_1 = as.numeric(TSNE_1), TSNE_2 = as.numeric(TSNE_2)) -> all_data[[11]]
-all_data[[11]] %>%
-  filter(`Project ID` == "BLCA_sc_1") %>%
+
+### S12
+glimpse(all_data[[12]])
+all_data[[12]] <- all_data[[12]] %>%
+  rename(cell_type = `Cell Type`, expr_mean = `Mean Value`) %>%
+  mutate(expr_mean = as.numeric(expr_mean))
+
+
+
+
+### S14
+glimpse(all_data[[14]])
+all_data[[14]] <- all_data[[14]] %>%
+  rename(cell_type = `Cell Type`, lesion = `Disease Lesion`,
+    cell_count = `Cell Count`, cell_proportion = `Cell Proportion`,
+    chi_square_test = `Chi Square Test Stdres`) %>%
+  mutate(cell_count = as.numeric(cell_count),
+    cell_proportion = as.numeric(cell_proportion),
+    chi_square_test = as.numeric(chi_square_test))
+
+### S15
+glimpse(all_data[[15]])
+all_data[[15]] <- all_data[[15]] %>%
+  rename(lesion = `Disease Lesion`)
+sc_tjc_dt <- all_data[[15]] %>%
+  filter(`Project ID` == "BLCA_sc_1")
+sc_tjc_dt %>%
   hchart(
     "scatter",
     hcaes(
-      x = TSNE_1,
-      y = TSNE_2,
-      group = cell_type
+      x = component1,
+      y = component2,
+      group = lesion
     )
   ) %>%
   hc_tooltip(
     useHTML = T,
     formatter = JS("
                 function() {
-                    outHTML = '<b>Cell ID</b>: ' + this.point.cell_id +
-                    '<br> <b>Disease lesion</b>: ' + this.point.lesion +
-                    '<br> <b>Soruce organ</b>: ' + this.point.Organ +
-                    '<br> <b>Cell type</b>: ' + this.point.cell_type
+                    outHTML = '<b>Pseudotime</b>: ' + this.point.value +
+                    '<br> <b>Disease lesion</b>: ' + this.point.lesion
                     return(outHTML)
                 }
                 ")) %>%
@@ -189,11 +212,16 @@ all_data[[11]] %>%
       marker = list(
         radius = 2.5
       )
-    )) %>%
+    )
+  ) %>%
   hc_xAxis(
-    title = list(text = "Component 1")) %>%
+    title = list(text = "Component 1")
+  ) %>%
   hc_yAxis(
-    title = list(text = "Component 2"))
+    title = list(text = "Component 2")
+  )
 
 saveRDS(all_data, "data/all_data.rds")
+
+
 
