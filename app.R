@@ -78,6 +78,8 @@ browse_page <- fluidPage(
   )
 )
 
+
+
 make_brwose_disease_page <- function(dn, ns, vs) {
   fluidPage(
     h3(dn, style = "text-align: center;"),
@@ -302,7 +304,7 @@ search_page <- fluidPage(
             class = "search-container",
             selectizeInput("search_gene",
               "Search for a gene:",
-              choices = c("GeneA", "GeneB", "GeneC"),
+              choices = NULL,
               multiple = FALSE,
               width = "100%",
               options = list(create = TRUE)
@@ -311,7 +313,8 @@ search_page <- fluidPage(
               icon("search"),
               class = "search-btn",
               id = "search_gene_btn",
-              onclick = "Shiny.onInputChange('searchBtnClicked', Math.random())"
+              onclick =
+                "Shiny.onInputChange('searchGeneBtnClicked', Math.random())"
             )
           )
         )
@@ -322,17 +325,25 @@ search_page <- fluidPage(
       h4("Search by organ",
         style = "text-align: center;"
       ),
-      selectizeInput(
-        inputId = "search_organ",
-        label = "Organ",
-        choices = c(""),
-        options = list(
-          valueField = "id",
-          labelField = "name",
-          searchField = "name",
-          create = FALSE,
-          maxItems = 1,
-          placeholder = "Input organ"
+      fluidRow(
+        column(
+          9,
+          tags$div(
+            class = "search-container",
+            selectizeInput("search_organ",
+              "Search for an organ:",
+              choices = unique(all_data[[1]]$Organ),
+              multiple = FALSE,
+              width = "100%"
+            ),
+            tags$button(
+              icon("search"),
+              class = "search-btn",
+              id = "search_organ_btn",
+              onclick =
+                "Shiny.onInputChange('searchOrganBtnClicked', Math.random())"
+            )
+          )
         )
       )
     ),
@@ -414,6 +425,409 @@ search_gene_page <- fluidPage(
   )
 )
 
+search_organ_page <- fluidPage(
+  h3("Search organ", style = "text-align: center;"),
+  textOutput("organ_name_text"),
+  fluidRow(
+    column(
+      width = 6,
+      h4("Associated datasets",
+        style = "text-align: center;"
+      ),
+      h5("Bulk",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_bulk_table"),
+      h5("Single-cell",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_sc_table"),
+      h4("Associated dynamic cellular components",
+        style = "text-align: center;"
+      ),
+      h5("Bulk (Cibersort)",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_dyn_bulk_table"),
+      h5("Single-cell",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_dyn_sc_table")
+    ),
+    column(
+      width = 6,
+      h4("Associated dynamic genes",
+        style = "text-align: center;"
+      ),
+      h5("Bulk",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_dyng_bulk_table"),
+      h5("Single-cell",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_dyng_sc_table"),
+      h4("Associated drugs",
+        style = "text-align: center;"
+      ),
+      h5("Database-derived",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_drug_db_table"),
+      h4("Literature-derived",
+        style = "text-align: center;"
+      ),
+      dataTableOutput("organ_drug_lit_table")
+    )
+  )
+)
+
+
+analyze_page <- fluidPage(
+  h3("Brief introduction to the analysis modules in PreAtlas",
+    style = "text-align: center;"
+  ),
+  tags$style(HTML("
+    .clickable-image {
+      cursor: pointer;
+    }
+
+    .image-container {
+      border: 1px solid black;
+      padding: 10px;
+      text-align: center;
+    }
+  ")),
+  p(
+    "Here, four interactive analytical and visualization modules haven been
+    packaged in PreAtlas to in-depth investigate these datasets, including
+    Gene Expression Analyze (GEA), Cellular Component Analyze (CCA),
+    Dynamic Gene Analyze (DGA) and Multiple Network analyze (MNA).
+    Here, the GEA module enable to dissect the gene-level distribution
+    across diverse cell types and/or pathological lesions while the CCA
+    Module enable to dissect the cellular-level distribution based on either
+    cell type annotations within scRNA-seq data or deconvoluted TME cells
+    within the bulk transcriptomic data. Of note, the DBA module could identify
+    premalignant-related dynamic genes as potential cancer risk-screening and
+    early-diagnosis biomarkers, which were defined as those showing gradually
+    dysregulated (increase or decrease) expression patterns along the
+    pathologically dynamic evolution or putative pseudo-tumorigenesis
+    trajectories. Finally, the MNA module enable to perform the network
+    analysis for systematically associating premalignant-related multiple
+    information, including diseases, genes, cell types and drugs, allowing
+    for uncovering the evolution and intervention mechanism underlying
+    premalignant diseases from the holistic view.
+    ",
+    style = "text-align:justify;color:black;background-color:lavender;
+          padding:15px;border-radius:10px"
+  ),
+  fluidRow(
+    column(
+      4,
+      div(
+        class = "image-container",
+        tags$h4("Gene Expression Analyze (GEA)",
+          style = "text-align: center;"
+        ),
+        tags$img(
+          class = "clickable-image",
+          src = "img/analyze_centre.jpg",
+          width = "50%",
+          onclick = paste0(
+            "window.location.href='",
+            route_link("analyze/GEA"),
+            "'"
+          )
+        ),
+        tags$br()
+      ),
+      tags$br(),
+      div(
+        class = "image-container",
+        tags$h4("Dynamic Gene Analyze (DGA)",
+          style = "text-align: center;"
+        ),
+        tags$img(
+          class = "clickable-image",
+          src = "img/analyze_centre.jpg",
+          width = "50%",
+          onclick = paste0(
+            "window.location.href='",
+            route_link("analyze/DGA"),
+            "'"
+          )
+        ),
+        tags$br()
+      )
+    ),
+    column(
+      4,
+      tags$img(
+        src = "img/analyze_centre.jpg",
+        width = "100%"
+      )
+    ),
+    column(
+      4,
+      div(
+        class = "image-container",
+        tags$h4("Cellular Component Analyze (CCA)",
+          style = "text-align: center;"
+        ),
+        tags$img(
+          class = "clickable-image",
+          src = "img/analyze_centre.jpg",
+          width = "50%",
+          onclick = paste0(
+            "window.location.href='",
+            route_link("analyze/CCA"),
+            "'"
+          )
+        ),
+        tags$br()
+      ),
+      tags$br(),
+      div(
+        class = "image-container",
+        tags$h4("Multiple Network Analyze (MNA)",
+          style = "text-align: center;"
+        ),
+        tags$img(
+          class = "clickable-image",
+          src = "img/analyze_centre.jpg",
+          width = "50%",
+          onclick = paste0(
+            "window.location.href='",
+            route_link("analyze/MNA"),
+            "'"
+          )
+        ),
+        tags$br()
+      )
+    )
+  )
+)
+
+gea_page <- fluidPage(
+  h3("Gene Expression Analyze (GEA) Module",
+    style = "text-align: center;"
+  ),
+  h4("Gene expression distribution across cellular clusters",
+    style = "text-align: center;"
+  ),
+  fluidRow(
+    column(
+      width = 5,
+      h4("UMAP plot", style = "text-align: center;"),
+      highchartOutput("gea_umap_plot")
+    ),
+    column(
+      width = 1,
+      selectizeInput(
+        "gea_umap_organ",
+        "Organ",
+        choices = NULL
+      ),
+      selectizeInput(
+        "gea_umap_proj",
+        "Project ID",
+        choices = NULL
+      ),
+      selectizeInput(
+        "gea_umap_gene",
+        "Gene",
+        choices = NULL
+      ),
+      selectizeInput(
+        "gea_umap_lesion",
+        "Lesions",
+        choices = NULL,
+        multiple = TRUE
+      ),
+      selectizeInput(
+        "gea_umap_cluter",
+        "Clusters",
+        choices = NULL,
+        multiple = TRUE
+      )
+    ),
+    column(
+      width = 5,
+      h4("Box plot", style = "text-align: center;"),
+      highchartOutput("gea_box_plot")
+    ),
+    column(
+      width = 1,
+      selectizeInput(
+        "gea_box_organ",
+        "Organ",
+        choices = NULL
+      ),
+      selectizeInput(
+        "gea_box_proj",
+        "Project ID",
+        choices = NULL
+      ),
+      selectizeInput(
+        "gea_box_gene",
+        "Gene",
+        choices = NULL
+      )
+    )
+  )
+)
+
+
+cca_page <- fluidPage(
+  h3("Cellular Component Analyze (CCA) Module",
+    style = "text-align: center;"
+  ),
+  h4("G Cellular distribution across lesions",
+    style = "text-align: center;"
+  ),
+  fluidRow(
+    column(
+      width = 5,
+      h4("Boxplot plot (CIBERSORTx based on bulk data)",
+        style = "text-align: center;"),
+      highchartOutput("cca_bulk_hc")
+    ),
+    column(
+      width = 1,
+      selectizeInput(
+        "cca_bulk_organ",
+        "Organ",
+        choices = NULL
+      ),
+      selectizeInput(
+        "cca_bulk_proj",
+        "Project ID",
+        choices = NULL
+      )
+    ),
+    column(
+      width = 5,
+      h4("Barplot plot (based on single-cell data)",
+        style = "text-align: center;"),
+      highchartOutput("cca_sc_hc")
+    ),
+    column(
+      width = 1,
+      selectizeInput(
+        "cca_sc_organ",
+        "Organ",
+        choices = NULL
+      ),
+      selectizeInput(
+        "cca_sc_proj",
+        "Project ID",
+        choices = NULL
+      )
+    )
+  )
+)
+
+dga_page <- fluidPage(
+  h3("Dynamic Gene Analyze (DGA) Module",
+    style = "text-align: center;"
+  ),
+  h4("Dynamic genes across lesions",
+    style = "text-align: center;"
+  ),
+  fluidRow(
+    column(
+      width = 4,
+          h4("Boxplot (bulk data)",
+        style = "text-align: center;"),
+      fluidRow(
+        column(
+          width = 10,
+      highchartOutput("dga_bulk_hc")
+        ),
+        column(
+          width = 2,
+          selectizeInput(
+            "dga_bulk_organ",
+            "Organ",
+            choices = NULL
+          ),
+          selectizeInput(
+            "dga_bulk_proj",
+            "Project ID",
+            choices = NULL
+          ),
+          selectizeInput(
+            "dga_bulk_gene",
+            "Gene",
+            choices = NULL
+          )
+        )
+      )
+    ),
+    column(
+      width = 8,
+      h4("Pseudo-timurigenesis plot (single-cell data)",
+      style = "text-align: center;"),
+      fluidRow(
+        column(
+          width = 6,
+          h5("Lesions",
+            style = "text-align: center;"),
+          fluidRow(
+            column(
+              width = 10,
+              highchartOutput("dga_sc_lesion_hc")
+            ),
+            column(
+              width = 2,
+              selectizeInput(
+                "dga_sc_lesion_organ",
+                "Organ",
+                choices = NULL
+              ),
+              selectizeInput(
+                "dga_sc_lesion_proj",
+                "Project ID",
+                choices = NULL
+              )
+            )
+          )
+        ),
+        column(
+          width = 6,
+          h5("Expression",
+            style = "text-align: center;"),
+          fluidRow(
+            column(
+              width = 10,
+              highchartOutput("dga_sc_exp_hc")
+            ),
+            column(
+              width = 2,
+              selectizeInput(
+                "dga_sc_exp_organ",
+                "Organ",
+                choices = NULL
+              ),
+              selectizeInput(
+                "dga_sc_exp_proj",
+                "Project ID",
+                choices = NULL
+              ),
+              selectizeInput(
+                "dga_sc_exp_gene",
+                "Gene",
+                choices = NULL
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+
 pages <- list()
 pages[["/"]] <- home_page
 pages[["browse"]] <- browse_page
@@ -429,6 +843,12 @@ pages[["browse/bulk"]] <- browse_bulk_page
 pages[["browse/sc"]] <- browse_sc_page
 pages[["search"]] <- search_page
 pages[["search/gene"]] <- search_gene_page
+pages[["search/organ"]] <- search_organ_page
+pages[["analyze"]] <- analyze_page
+pages[["analyze/GEA"]] <- gea_page
+pages[["analyze/CCA"]] <- cca_page
+pages[["analyze/DGA"]] <- dga_page
+
 
 routes_list <- lapply(seq_along(pages), function(i) {
   route(names(pages)[i], pages[[i]])
@@ -535,7 +955,24 @@ ui <- fluidPage(
 )
 
 
-
+my_data_table <- function(data) {
+  datatable(
+    data,
+    options = list(
+      searching = FALSE,
+      pageLength = 100,
+      ordering = FALSE,
+      info = FALSE,
+      scrollX = TRUE,
+      scrollY = "300px",
+      scrollCollapse = TRUE,
+      dom = "Bfrtip",
+      buttons = c("copy", "csv", "excel", "pdf", "print")
+    ),
+    escape = FALSE,
+    selection = "none"
+  )
+}
 
 server <- function(input, output, session) {
   router$server(input, output, session)
@@ -575,22 +1012,7 @@ server <- function(input, output, session) {
         all_data[[mapping[[input$sc_bulk_choice]]]] %>%
         filter(Organ %in% organ_overview)
       output$data_overview <- DT::renderDataTable({
-        DT::datatable(
-          data_for_overview,
-          options = list(
-            searching = FALSE,
-            pageLength = 100,
-            ordering = FALSE,
-            info = FALSE,
-            scrollX = TRUE,
-            scrollY = "300px",
-            scrollCollapse = TRUE,
-            dom = "Bfrtip",
-            buttons = c("copy", "csv", "excel", "pdf", "print")
-          ),
-          escape = FALSE,
-          selection = "none"
-        )
+        my_data_table(data_for_overview)
       })
     })
   })
@@ -681,22 +1103,7 @@ server <- function(input, output, session) {
               )
           )
           #### DEG table
-          output$bulk_deg_table <- DT::renderDataTable({
-            DT::datatable(
-              deg_data,
-              options = list(
-                pageLength = 100,
-                info = FALSE,
-                scrollX = TRUE,
-                scrollY = "300px",
-                scrollCollapse = TRUE,
-                dom = "Bfrtip",
-                buttons = c("copy", "csv", "excel", "pdf", "print")
-              ),
-              escape = FALSE,
-              selection = "none"
-            )
-          })
+          output$bulk_deg_table <- renderDataTable(my_data_table(deg_data))
         })
 
         ### Dynamic
@@ -733,24 +1140,14 @@ server <- function(input, output, session) {
             )
         })
         #### dynamic table
-        output$bulk_dynamic_table <- DT::renderDataTable({
-          DT::datatable(
-            plot_data %>%
-              group_by(Gene, Organ, `Project ID`, Direction, FDR) %>%
-              pivot_wider(names_from = `Disease Name`, values_from = expr_mean),
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
-          )
-        })
+        output$bulk_dynamic_table <- renderDataTable(
+          my_data_table(plot_data %>%
+            group_by(Gene, Organ, `Project ID`, Direction, FDR) %>%
+            pivot_wider(
+              names_from = `Disease Name`,
+              values_from = expr_mean
+            ))
+        )
         ### TME
         #### TME proportions
         bulk_tme_data <- all_data[[9]] %>%
@@ -774,27 +1171,14 @@ server <- function(input, output, session) {
             hc_legend(reversed = TRUE)
         })
         #### TME table
-        output$bulk_tme_table <- DT::renderDataTable({
-          DT::datatable(
-            bulk_tme_data %>%
-              group_by(`Project ID`, `Cell Type`, Organ) %>%
-              pivot_wider(
-                names_from = `Disease Name`,
-                values_from = Composition
-              ),
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
-          )
-        })
+        output$bulk_tme_table <- renderDataTable(
+          my_data_table(bulk_tme_data %>%
+            group_by(`Project ID`, `Cell Type`, Organ) %>%
+            pivot_wider(
+              names_from = `Disease Name`,
+              values_from = Composition
+            ))
+        )
       }
     }
 
@@ -896,7 +1280,6 @@ server <- function(input, output, session) {
         output$sc_marker_hc <- renderHighchart({
           highchart() %>%
             hc_chart(type = "heatmap") %>%
-            hc_title(text = "Heatmap") %>%
             hc_xAxis(
               title = list(text = "Cell type"),
               categories = unique(hp_data$cell_type)
@@ -937,28 +1320,17 @@ server <- function(input, output, session) {
                 ")
             )
         })
-        output$sc_marker_table <- DT::renderDataTable({
-          DT::datatable(
+        output$sc_marker_table <- renderDataTable(
+          my_data_table(
             all_data[[12]] %>%
               filter(`Project ID` == sc_id) %>%
               group_by(`Project ID`, Gene) %>%
               pivot_wider(
                 names_from = cell_type,
                 values_from = expr_mean
-              ),
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
+              )
           )
-        })
+        )
 
         ### Cell proportions
         sc_ppt_data <- all_data[[14]] %>%
@@ -984,8 +1356,8 @@ server <- function(input, output, session) {
             ) %>%
             hc_legend(reversed = TRUE)
         })
-        output$sc_proportion_table <- DT::renderDataTable({
-          DT::datatable(
+        output$sc_proportion_table <- renderDataTable(
+          my_data_table(
             sc_ppt_data %>%
               group_by(cell_type, `Project ID`, Organ) %>%
               mutate(
@@ -995,20 +1367,9 @@ server <- function(input, output, session) {
               pivot_wider(
                 names_from = lesion,
                 values_from = cell_count
-              ),
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
+              )
           )
-        })
+        )
 
         ### Traj
         sc_tjc_dt <- all_data[[15]] %>%
@@ -1047,42 +1408,22 @@ server <- function(input, output, session) {
               title = list(text = "Component 2")
             )
         })
-        output$sc_traj_table <- DT::renderDataTable({
-          DT::datatable(
-            sc_tjc_dt,
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
-          )
-        })
+        output$sc_traj_table <- renderDataTable(my_data_table(sc_tjc_dt))
       }
     }
 
 
     ## Render search gene
     if (!is.null(query_param$gene_query)) {
-      print(str_c("gene query listened! ", query_param$gene_query))
       query_gene <- query_param$gene_query[1]
       if (query_gene %in% all_data[[17]]$Gene) {
         output$gene_name_text <- renderText({
           query_gene
         })
-
-        output$gene_basic_table <- renderUI({
-          filtered_data <- all_data[[17]] %>%
-            filter(Gene == query_gene)
-          print(as.character(filtered_data[1,5]))
-          table <- tags$table(
+        make_html_table <- function(data) {
+          tags$table(
             style = "width: 100%;",
-            lapply(seq_along(filtered_data), function(i) {
+            lapply(seq_along(data), function(i) {
               tags$tr(
                 tags$th(
                   style = "
@@ -1092,34 +1433,110 @@ server <- function(input, output, session) {
             padding: 10px;
             margin-right: -10px;
           ",
-                  colnames(filtered_data)[i]
+                  colnames(data)[i]
                 ),
                 tags$td(
                   style = "padding: 10px;",
-                  HTML(as.character(filtered_data[1, i]))
+                  HTML(as.character(data[1, i]))
                 )
               )
             })
           )
-
-          table
+        }
+        output$gene_basic_table <- renderUI({
+          filtered_data <- all_data[[17]] %>%
+            filter(Gene == query_gene)
+          make_html_table(filtered_data)
         })
 
         output$gene_knowledge_table <- renderDataTable(
-          datatable(
+          my_data_table(
             all_data[[18]] %>%
-              filter(Gene == query_gene),
-            options = list(
-              pageLength = 100,
-              info = FALSE,
-              scrollX = TRUE,
-              scrollY = "300px",
-              scrollCollapse = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "pdf", "print")
-            ),
-            escape = FALSE,
-            selection = "none"
+              filter(Gene == query_gene)
+          )
+        )
+
+        output$gene_omics_table <- renderDataTable(
+          my_data_table(all_data[[6]] %>%
+            filter(Gene == query_gene) %>%
+            select(-Gene))
+        )
+
+        output$gene_celltype_table <- renderDataTable(
+          my_data_table(all_data[[13]] %>%
+            filter(Gene == query_gene) %>%
+            select(-Gene))
+        )
+
+        output$gene_drug_table <- renderDataTable(
+          all_data[[19]] %>%
+            filter(Gene == query_gene) %>%
+            select(-Gene) %>%
+            my_data_table()
+        )
+
+        output$gene_network_table <- renderDataTable(
+          all_data[[20]] %>%
+            filter(Gene == query_gene) %>%
+            select(-Gene) %>%
+            my_data_table()
+        )
+      }
+    }
+
+    ## Render search organ
+    if (!is.null(query_param$organ_query)) {
+      query_organ <- query_param$organ_query[1]
+      if (query_organ %in% all_data[[1]]$Organ) {
+        output$organ_name_text <- renderText({
+          query_organ
+        })
+        output$organ_bulk_table <- renderDataTable(
+          my_data_table(
+            all_data[[2]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_sc_table <- renderDataTable(
+          my_data_table(
+            all_data[[3]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_dyn_bulk_table <- renderDataTable(
+          my_data_table(
+            all_data[[9]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_dyn_sc_table <- renderDataTable(
+          my_data_table(
+            all_data[[14]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_dyng_bulk_table <- renderDataTable(
+          my_data_table(
+            all_data[[8]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_dyng_sc_table <- renderDataTable(
+          my_data_table(
+            all_data[[16]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_drug_db_table <- renderDataTable(
+          my_data_table(
+            all_data[[21]] %>%
+              filter(Organ == query_organ)
+          )
+        )
+        output$organ_drug_lit_table <- renderDataTable(
+          my_data_table(
+            all_data[[22]] %>%
+              filter(Organ == query_organ)
           )
         )
       }
@@ -1133,13 +1550,326 @@ server <- function(input, output, session) {
     choices = unique(all_data[[17]]$Gene),
     server = T
   )
-  observeEvent(input$searchBtnClicked, {
+
+  observeEvent(input$searchGeneBtnClicked, {
     target_url <- paste0(
       "#!/search/gene?gene_query=",
       input$search_gene
     )
-    print(target_url)
     runjs(sprintf("window.open('%s', '_self')", target_url))
+  })
+
+  observeEvent(input$searchOrganBtnClicked, {
+    target_url <- paste0(
+      "#!/search/organ?organ_query=",
+      input$search_organ
+    )
+    runjs(sprintf("window.open('%s', '_self')", target_url))
+  })
+
+
+  # GEA
+  ## GEA UMAP
+  updateSelectizeInput(
+    session,
+    "gea_umap_organ",
+    choices = unique(all_data[[23]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$gea_umap_organ, {
+    data_filter_1 <- all_data[[23]] %>%
+      filter(Organ == input$gea_umap_organ)
+    updateSelectizeInput(
+      session,
+      "gea_umap_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+
+    observeEvent(input$gea_umap_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$gea_umap_proj)
+      updateSelectizeInput(
+        session,
+        "gea_umap_gene",
+        choices = unique(data_filter_2 %>%
+          pull(Gene) %>%
+          unlist()),
+        server = T
+      )
+
+      observeEvent(input$gea_umap_gene, {
+        data_filter_3 <- data_filter_2 %>%
+          filter(Gene == input$gea_umap_gene)
+        updateSelectizeInput(
+          session,
+          "gea_umap_lesion",
+          choices = unique(data_filter_3 %>%
+            pull(lesion) %>%
+            unlist()),
+          selected = unique(data_filter_3 %>%
+            pull(lesion) %>%
+            unlist()),
+          server = T
+        )
+        observeEvent(input$gea_umap_lesion, {
+          data_filter_4 <- data_filter_3 %>%
+            filter(lesion %in% input$gea_umap_lesion)
+          updateSelectizeInput(
+            session,
+            "gea_umap_cluter",
+            choices = unique(data_filter_4 %>%
+              pull(cell_type) %>%
+              unlist()),
+            selected = unique(data_filter_4 %>%
+              pull(cell_type) %>%
+              unlist()),
+            server = T
+          )
+          observeEvent(input$gea_umap_cluter, {
+            data_filter_5 <- data_filter_4 %>%
+              filter(cell_type %in% input$gea_umap_cluter)
+            if (dim(data_filter_5)[1] > 0) {
+              output$gea_umap_plot <- renderHighchart({
+                data_filter_5 %>%
+                  mutate(color = colorRampPalette(
+                    c("lightgray", "purple")
+                  )(100)[
+                    cut(Value, breaks = 100)
+                  ]) %>%
+                  hchart(
+                    "scatter",
+                    hcaes(
+                      x = umap_1,
+                      y = umap_2,
+                      color = color
+                    )
+                  ) %>%
+                  # hc_title(text = paste0(
+                  #   input$gea_umap_gene,
+                  #   " expression in ",
+                  #   input$gea_umap_proj,
+                  # )) %>%
+                  hc_tooltip(
+                    useHTML = T,
+                    formatter = JS("
+                  function() {
+                      outHTML = '<b>Cell ID</b>: ' + this.point.cell_id +
+                      '<br> <b>Disease lesion</b>: ' + this.point.lesion +
+                      '<br> <b>Soruce organ</b>: ' + this.point.Organ +
+                      '<br> <b>Cell type</b>: ' + this.point.cell_type
+                      return(outHTML)
+                  }
+                  ")
+                  ) %>%
+                  hc_plotOptions(
+                    scatter = list(
+                      marker = list(
+                        radius = 2.5
+                      )
+                    )
+                  ) %>%
+                  hc_xAxis(
+                    title = list(text = "Component 1")
+                  ) %>%
+                  hc_yAxis(
+                    title = list(text = "Component 2")
+                  ) %>%
+                  hc_colorAxis(
+                    minColor = "lightgray",
+                    maxColor = "purple"
+                  )
+              })
+            }
+          })
+        })
+      })
+    })
+  })
+
+  ## GEA Boxplot
+
+  updateSelectizeInput(
+    session,
+    "gea_box_organ",
+    choices = unique(all_data[[30]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$gea_box_organ, {
+    data_filter_1 <- all_data[[30]] %>%
+      filter(Organ == input$gea_box_organ)
+    updateSelectizeInput(
+      session,
+      "gea_box_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+    observeEvent(input$gea_box_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$gea_box_proj)
+      updateSelectizeInput(
+        session,
+        "gea_box_gene",
+        choices = unique(data_filter_2 %>%
+          pull(Gene) %>%
+          unlist()),
+        server = T
+      )
+      observeEvent(input$gea_box_gene, {
+        if (dim(data_filter_2)[1] > 0) {
+          output$gea_box_plot <- renderHighchart({
+            hchart(
+              data_filter_2 %>% filter(Gene == input$gea_box_gene),
+              "boxplot",
+              hcaes(
+                x = cell_type,
+                low = min,
+                q1 = lower_quartile,
+                median = median,
+                q3 = upper_quartile,
+                high = max,
+                group = cell_type
+              )
+            ) %>%
+            # hc_title(text = paste0(
+            #   input$gea_box_gene,
+            #   " expression in ",
+            #   input$gea_box_proj,
+            # )) %>%
+            identity()
+          })
+        }
+      })
+    })
+  })
+
+  # CCA
+  updateSelectizeInput(
+    session,
+    "cca_bulk_organ",
+    choices = unique(all_data[[10]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$cca_bulk_organ, {
+    data_filter_1 <- all_data[[10]] %>%
+      filter(Organ == input$cca_bulk_organ)
+    updateSelectizeInput(
+      session,
+      "cca_bulk_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+
+    observeEvent(input$cca_bulk_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$cca_bulk_proj)
+      if (dim(data_filter_2)[1] > 0) {
+        output$cca_bulk_hc <- renderHighchart({
+          highchart() %>%
+            hc_chart(type = "column") %>%
+            hc_xAxis(categories = unique(data_filter_2$`Disease Name`)) %>%
+            hc_yAxis(title = list(text = "Proportion"), min = 0, max = 1) %>%
+            hc_plotOptions(column = list(stacking = "normal")) %>%
+            hc_add_series(
+              data_filter_2, "column",
+              hcaes(x = `Disease Name`, y = Composition, group = `Cell Type`)
+            ) %>%
+            hc_plotOptions(
+              column = list(
+                stacking = "normal",
+                pointPadding = 0
+              )
+            ) %>%
+            hc_legend(reversed = TRUE)
+        })
+      }
+    })
+  })
+
+  updateSelectizeInput(
+    session,
+    "cca_sc_organ",
+    choices = unique(all_data[[14]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$cca_sc_organ, {
+    data_filter_1 <- all_data[[14]] %>%
+      filter(Organ == input$cca_sc_organ)
+    updateSelectizeInput(
+      session,
+      "cca_sc_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+    observeEvent(input$cca_sc_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$cca_sc_proj)
+      if (dim(data_filter_2)[1] > 0) {
+        output$cca_sc_hc <- renderHighchart({
+          highchart() %>%
+            hc_chart(type = "column") %>%
+            hc_xAxis(categories = unique(data_filter_2$lesion)) %>%
+            hc_yAxis(title = list(text = "Proportion"), min = 0, max = 1) %>%
+            hc_plotOptions(column = list(stacking = "normal")) %>%
+            hc_add_series(
+              data_filter_2, "column",
+              hcaes(
+                x = lesion, y = cell_proportion,
+                group = cell_type, custom = cell_count
+              )
+            ) %>%
+            hc_plotOptions(
+              column = list(
+                stacking = "normal",
+                pointPadding = 0
+              )
+            ) %>%
+            hc_legend(reversed = TRUE)
+        })
+      }
+    })
+  })
+
+  # DGA
+  updateSelectizeInput(
+    session,
+    "dga_bulk_organ",
+    choices = unique(all_data[[24]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$dga_bulk_organ, {
+    data_filter_1 <- all_data[[24]] %>%
+      filter(Organ == input$dga_bulk_organ)
+    updateSelectizeInput(
+      session,
+      "dga_bulk_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+    observeEvent(input$dga_bulk_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$dga_bulk_proj)
+      if (dim(data_filter_2)[1] > 0) {
+        output$dga_bulk_hc <- renderHighchart({
+          
+        })
+      }
+    })
   })
 }
 

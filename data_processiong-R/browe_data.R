@@ -170,7 +170,8 @@ all_data[[12]] <- all_data[[12]] %>%
   rename(cell_type = `Cell Type`, expr_mean = `Mean Value`) %>%
   mutate(expr_mean = as.numeric(expr_mean))
 
-
+### S13
+glimpse(all_data[[13]])
 
 
 ### S14
@@ -187,41 +188,84 @@ all_data[[14]] <- all_data[[14]] %>%
 glimpse(all_data[[15]])
 all_data[[15]] <- all_data[[15]] %>%
   rename(lesion = `Disease Lesion`)
-sc_tjc_dt <- all_data[[15]] %>%
-  filter(`Project ID` == "BLCA_sc_1")
-sc_tjc_dt %>%
-  hchart(
-    "scatter",
-    hcaes(
-      x = component1,
-      y = component2,
-      group = lesion
-    )
+
+
+### S16
+glimpse(all_data[[16]])
+
+
+
+### S17
+glimpse(all_data[[17]])
+
+all_data[[17]] <- all_data[[17]] %>%
+  group_by(Gene) %>%
+  mutate(
+    `Chromosome location` =  paste0('<a href="https://www.ebi.ac.uk/gwas/regions/',
+      `Chromosome location`, '">', `Chromosome location`, '</a>'),
+    `Ensembl gene ID` = paste0('<a href="https://www.ensembl.org/id/',
+      `Ensembl gene ID`, '">', `Ensembl gene ID`, '</a>'),
+    `NCBI gene ID` =  paste0('<a href="https://www.ncbi.nlm.nih.gov/gene/?term=',
+      `NCBI gene ID`, '">', `NCBI gene ID`, '</a>'),
+    `UCSC gene ID` = paste0('<a href="http://genome.cse.ucsc.edu/cgi-bin/hgGene?org=Human&hgg_chrom=none&hgg_type=knownGene&hgg_gene=',
+      `UCSC gene ID`, '">', `UCSC gene ID`, '</a>'),
+    `UniProt accession` = paste0('<a href="https://www.uniprot.org/uniprotkb/',
+      `UniProt accession`, '/entry">', `UniProt accession`, '</a>'),
+    `RefSeq accession` = paste0('<a href="https://www.ncbi.nlm.nih.gov/nuccore/',
+      `RefSeq accession`, '">', `RefSeq accession`, '</a>'),
+    `PubMed ID` = paste0('<a href="https://pubmed.ncbi.nlm.nih.gov/',
+      `PubMed ID`, '">', `PubMed ID`, '</a>')
   ) %>%
-  hc_tooltip(
-    useHTML = T,
-    formatter = JS("
-                function() {
-                    outHTML = '<b>Pseudotime</b>: ' + this.point.value +
-                    '<br> <b>Disease lesion</b>: ' + this.point.lesion
-                    return(outHTML)
-                }
-                ")) %>%
-  hc_plotOptions(
-    scatter = list(
-      marker = list(
-        radius = 2.5
-      )
-    )
+  summarize(
+    `Approved name` = paste(unique(`Approved name`), collapse = ", "),
+    `Chromosome location` = paste(unique(`Chromosome location`), collapse = ", "),
+    `Ensembl gene ID` = paste(unique(`Ensembl gene ID`), collapse = ", "),
+    `NCBI gene ID` = paste(unique(`NCBI gene ID`), collapse = ", "),
+    `UCSC gene ID` = paste(unique(`UCSC gene ID`), collapse = ", "),
+    `UniProt accession` = paste(unique(`UniProt accession`), collapse = ", "),
+    `RefSeq accession` = paste(unique(`RefSeq accession`), collapse = ", "),
+    `PubMed ID` = paste(unique(`PubMed ID`), collapse = ", ")
   ) %>%
-  hc_xAxis(
-    title = list(text = "Component 1")
+  ungroup()
+
+glimpse(all_data[[17]])
+
+### S18
+glimpse(all_data[[18]])
+glimpse(all_data[[4]])
+all_data[[18]] <- all_data[[4]] %>%
+  distinct() %>%
+  separate_rows(`Associated genes (DisGeNet)`, sep = ", ", convert = TRUE) %>%
+  group_by(`Associated genes (DisGeNet)`, ID) %>%
+  summarize(across(`Disease name`:`ICD10CM ID`, ~paste(unique(.x), collapse = ", "))) %>%
+  ungroup() %>%
+  rename(Gene = `Associated genes (DisGeNet)`)
+
+### S20
+glimpse(all_data[[20]])
+readxl::read_excel("data/S20.xlsx") %>%
+  rename(
+    Gene = Gene.Symbol,
+    `Network Associations` = Network.association,
+    `Association Type` = Association.type
+  ) -> all_data[[20]]
+
+
+### S23
+glimpse(all_data[[23]])
+all_data[[23]] %>%
+  rename(
+    lesion = `Disease Lesion`,
+    umap_1 = `Component 1`,
+    umap_2 = `Component 2`,
+    cell_type = `Cell Type`,
   ) %>%
-  hc_yAxis(
-    title = list(text = "Component 2")
-  )
+  mutate(
+    umap_1 = as.numeric(umap_1),
+    umap_2 = as.numeric(umap_2),
+    Value = as.numeric(Value)
+  ) -> all_data[[23]]
+
 
 saveRDS(all_data, "data/all_data.rds")
-
-
 
