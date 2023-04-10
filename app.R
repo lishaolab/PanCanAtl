@@ -689,7 +689,8 @@ cca_page <- fluidPage(
     column(
       width = 5,
       h4("Boxplot plot (CIBERSORTx based on bulk data)",
-        style = "text-align: center;"),
+        style = "text-align: center;"
+      ),
       highchartOutput("cca_bulk_hc")
     ),
     column(
@@ -708,7 +709,8 @@ cca_page <- fluidPage(
     column(
       width = 5,
       h4("Barplot plot (based on single-cell data)",
-        style = "text-align: center;"),
+        style = "text-align: center;"
+      ),
       highchartOutput("cca_sc_hc")
     ),
     column(
@@ -737,15 +739,16 @@ dga_page <- fluidPage(
   fluidRow(
     column(
       width = 4,
-          h4("Boxplot (bulk data)",
-        style = "text-align: center;"),
+      h4("Boxplot (bulk data)",
+        style = "text-align: center;"
+      ),
       fluidRow(
         column(
-          width = 10,
-      highchartOutput("dga_bulk_hc")
+          width = 8,
+          highchartOutput("dga_bulk_hc")
         ),
         column(
-          width = 2,
+          width = 4,
           selectizeInput(
             "dga_bulk_organ",
             "Organ",
@@ -767,19 +770,21 @@ dga_page <- fluidPage(
     column(
       width = 8,
       h4("Pseudo-timurigenesis plot (single-cell data)",
-      style = "text-align: center;"),
+        style = "text-align: center;"
+      ),
       fluidRow(
         column(
           width = 6,
           h5("Lesions",
-            style = "text-align: center;"),
+            style = "text-align: center;"
+          ),
           fluidRow(
             column(
-              width = 10,
+              width = 8,
               highchartOutput("dga_sc_lesion_hc")
             ),
             column(
-              width = 2,
+              width = 4,
               selectizeInput(
                 "dga_sc_lesion_organ",
                 "Organ",
@@ -796,10 +801,11 @@ dga_page <- fluidPage(
         column(
           width = 6,
           h5("Expression",
-            style = "text-align: center;"),
+            style = "text-align: center;"
+          ),
           fluidRow(
             column(
-              width = 10,
+              width = 8,
               highchartOutput("dga_sc_exp_hc")
             ),
             column(
@@ -1737,12 +1743,12 @@ server <- function(input, output, session) {
                 group = cell_type
               )
             ) %>%
-            # hc_title(text = paste0(
-            #   input$gea_box_gene,
-            #   " expression in ",
-            #   input$gea_box_proj,
-            # )) %>%
-            identity()
+              # hc_title(text = paste0(
+              #   input$gea_box_gene,
+              #   " expression in ",
+              #   input$gea_box_proj,
+              # )) %>%
+              identity()
           })
         }
       })
@@ -1781,7 +1787,7 @@ server <- function(input, output, session) {
             hc_plotOptions(column = list(stacking = "normal")) %>%
             hc_add_series(
               data_filter_2, "column",
-              hcaes(x = `Disease Name`, y = Composition, group = `Cell Type`)
+              hcaes(x = disease, y = Composition, group = `Cell Type`)
             ) %>%
             hc_plotOptions(
               column = list(
@@ -1864,9 +1870,106 @@ server <- function(input, output, session) {
     observeEvent(input$dga_bulk_proj, {
       data_filter_2 <- data_filter_1 %>%
         filter(`Project ID` == input$dga_bulk_proj)
+      updateSelectizeInput(
+        session,
+        "dga_bulk_gene",
+        choices = unique(data_filter_2 %>%
+          pull(Gene) %>%
+          unlist()),
+        server = T
+      )
+
+      observeEvent(input$dga_bulk_gene, {
+        data_filter_3 <- data_filter_2 %>%
+          filter(Gene == input$dga_bulk_gene)
+        if (dim(data_filter_3)[1] > 0) {
+          output$dga_bulk_hc <- renderHighchart({
+            highchart() %>%
+              hc_add_series(
+                data_filter_3,
+                "boxplot",
+                hcaes(
+                  x = disease,
+                  low = min,
+                  q1 = lower_quartile,
+                  median = median,
+                  q3 = upper_quartile,
+                  high = max,
+                  group = lesion_name
+                )
+              ) %>%
+              hc_add_series(
+                data_filter_3,
+                type = "line",
+                hcaes(x = disease, y = mean)
+              ) %>%
+              hc_xAxis(
+                categories = unique(data_filter_3$lesion_name),
+                title = list(text = "Lesion Name")
+              )
+          })
+        }
+      })
+    })
+  })
+
+  updateSelectizeInput(
+    session,
+    "dga_sc_lesion_organ",
+    choices = unique(all_data[[25]]$Organ),
+    server = T
+  )
+
+  observeEvent(input$dga_sc_lesion_organ, {
+    data_filter_1 <- all_data[[25]] %>%
+      filter(Organ == input$dga_sc_lesion_organ)
+    updateSelectizeInput(
+      session,
+      "dga_sc_lesion_proj",
+      choices = unique(data_filter_1 %>%
+        pull(`Project ID`) %>%
+        unlist()),
+      server = T
+    )
+
+    observeEvent(input$dga_sc_lesion_proj, {
+      data_filter_2 <- data_filter_1 %>%
+        filter(`Project ID` == input$dga_sc_lesion_proj)
       if (dim(data_filter_2)[1] > 0) {
-        output$dga_bulk_hc <- renderHighchart({
-          
+        output$dga_sc_lesion_hc <- renderHighchart({
+          data_filter_2 %>%
+            hchart(
+              "scatter",
+              hcaes(
+                x = component1,
+                y = component2,
+                group = Lesion
+              )
+            ) %>%
+            hc_tooltip(
+              useHTML = T,
+              formatter = JS("
+                function() {
+                    outHTML = '<b>Pseudotime</b>: ' +
+                     this.point.Pseudotime_Value +
+                    '<br> <b>Disease lesion</b>: ' + this.point.Lesion
+                    return(outHTML)
+                }
+                ")
+            ) %>%
+            hc_plotOptions(
+              scatter = list(
+                marker = list(
+                  radius = 2.5
+                )
+              )
+            ) %>%
+            hc_xAxis(
+              title = list(text = "Component 1")
+            ) %>%
+            hc_yAxis(
+              title = list(text = "Component 2")
+            )
         })
       }
     })
