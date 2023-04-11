@@ -1,9 +1,5 @@
 .Rproj.user
 .Rhistory
-.RData
-.Ruserdata
-.csv
-.xlsx
-.7z
-.pptx
-.docx
+/data/
+/data_full/
+
