@@ -1,837 +1,14 @@
-suppressPackageStartupMessages({
-  library(shiny)
-  library(shinyWidgets)
-  library(shinydashboard)
-  library(shiny.router)
-  library(shinyjs)
-  library(stringr)
-  library(tidyverse)
-  library(jsTreeR)
-  library(highcharter)
-  library(DT)
-})
-
 options(shiny.port = 7777)
 options(shiny.host = "166.111.130.215")
 
 all_data <- readRDS("data/all_data.rds")
 
-home_page <- fluidPage(
-  p("Through this application, it is intended to develop a learning
-     environment for anyone who is starting in the study of statistical
-      modeling, specifically linear regression through the method of
-       ordinary least squares. In any case, we will focus on the procedure
-        (graphics, interpretations, hypotheses, etc.) and not on the
-         mathematical processes.",
-    strong("But do not worry!"),
-    "you will find alternatives
-          to learn all these technical aspects independently.",
-    style = "text-align:justify;color:black;background-color:lavender;
-        padding:15px;border-radius:10px"
-  ),
-  fluidRow(
-    column(
-      12,
-      searchInput(
-        inputId = "search", label = "Quick search",
-        placeholder = "e.g. TP53, Intestinal metaplasia, xx drug, ...",
-        btnSearch = icon("search"),
-        width = "500px"
-      )
-    ),
-    align = "center"
-  ),
-  fluidRow(
-    # column(
-    #     highchartOutput("bodymap_hc", width = "50%"),
-    #     width = 6,
-    #     style = "justify-content:right"),
-    column(
-      tags$img(src = "img/data_overview.png", width = "100%"),
-      width = 6
-    )
-  ),
-  style = "padding-left:40px;padding-right:40px"
-)
 
-browse_page <- fluidPage(
-  sidebarPanel(
-    width = 3,
-    jstreeOutput("browse_tree_organ"),
-    jstreeOutput("browse_tree_bulk"),
-  ),
-  sidebarPanel(
-    width = 9,
-    prettyRadioButtons(
-      "sc_bulk_choice",
-      choices = c(
-        "curated data",
-        "bulk",
-        "single-cell"
-      ),
-      label = "select experiment type",
-      inline = TRUE
-    ),
-    DT::dataTableOutput(
-      outputId = "data_overview"
-    )
-  )
-)
-
-
-
-make_brwose_disease_page <- function(dn, ns, vs) {
-  fluidPage(
-    h3(dn, style = "text-align: center;"),
-    tags$table(
-      style = "width: 100%;",
-      lapply(3:length(ns), function(i) {
-        tags$tr(
-          tags$th(
-            style = "
-            text-align: right;
-            font-weight: bold;
-            width: 50%;
-            padding: 10px;
-            margin-right: -10px;
-          ",
-            ns[i]
-          ),
-          tags$td(style = "padding: 10px;", HTML(vs[i]))
-        )
-      })
-    )
-  )
-}
-
-browse_bulk_page <- fluidPage(
-  h3("Bulk data detials", style = "text-align: center;"),
-  textOutput("bulk_data_id_text"),
-  fluidRow(
-    column(
-      width = 6,
-      h4("Sample counts across premalignant lesions",
-        style = "text-align: center;"
-      ),
-      highchartOutput("bulk_sample_hc"),
-      h4("DEGs for each premalignant lesion",
-        style = "text-align: center;"
-      ),
-      selectInput(
-        "select_bulk_deg",
-        label = "Select a group pair",
-        choices = NULL
-      ),
-      h5("Volcano plot for DEGs",
-        style = "text-align: center;"
-      ),
-      highchartOutput("bulk_volcano_hc"),
-      h5("The DEG table",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "bulk_deg_table"
-      ),
-      p(
-        "Notes: DEG: Differently Expressed Genes ",
-        "(Premalignant lesion vs Normal control;
-      FDR < 0.05 & fold change > 1.5, student t-test)",
-        style = "text-align:justify;color:black;background-color:lavender;
-      padding:15px;border-radius:10px"
-      )
-    ),
-    column(
-      width = 6,
-      h4("Dynamic genes across premalignant lesions",
-        style = "text-align: center;"
-      ),
-      h5("Line chart for top 5 dynamic genes (mean expression)",
-        style = "text-align: center;"
-      ),
-      highchartOutput("bulk_dynamic_hc"),
-      h5("The dynamic gene table",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "bulk_dynamic_table"
-      ),
-      p(
-        "Notes: Dynamic genes referred to genes whose expression show gradually
-      increase (UP) or  decrease (DOWN) trend along the evolution of
-      premalignant diseases (FDR < 0.05, anova test)",
-        style = "text-align:justify;color:black;background-color:lavender;
-      padding:15px;border-radius:10px"
-      ),
-      h4("TME cell types deconvolution analysis",
-        style = "text-align: center;"
-      ),
-      h5("Column plot for deconvoluted TME cells",
-        style = "text-align: center;"
-      ),
-      highchartOutput("bulk_tme_box_hc"),
-      h5("The deconvoluted TME cell table",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "bulk_tme_table"
-      ),
-      p(
-        "Notes: The deconvolution analysis was performed by the
-        CIBERSORTx platform (https://cibersortx.stanford.edu/).
-        TME, tumor microenvironment.",
-        style = "text-align:justify;color:black;background-color:lavender;
-      padding:15px;border-radius:10px"
-      )
-    )
-  )
-)
-
-browse_sc_page <- fluidPage(
-  h3("Single-cell data detials", style = "text-align: center;"),
-  textOutput("sc_data_id_text"),
-  fluidRow(
-    column(
-      width = 6,
-      h4("General information",
-        style = "text-align: center;"
-      ),
-      fluidRow(
-        tags$style(".highchart-container {min-height: 400px;}"),
-        column(
-          width = 6,
-          h4("Cell clusters",
-            style = "text-align: center;"
-          ),
-          highchartOutput("sc_cluster_hc")
-        ),
-        column(
-          width = 6,
-          h4("Disease lesions",
-            style = "text-align: center;"
-          ),
-          highchartOutput("sc_lesion_hc")
-        )
-      ),
-      h4("Putative cell marker analysis ",
-        style = "text-align: center;"
-      ),
-      h5("Violin plot for top 2 putative markers across cell clusters",
-        style = "text-align: center;"
-      ),
-      highchartOutput("sc_marker_hc"),
-      h5("Putative cell marker table",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "sc_marker_table"
-      )
-    ),
-    column(
-      width = 6,
-      h4("Cellular proportion analysis",
-        style = "text-align: center;"
-      ),
-      h5("Boxplot of cellular proportions across lesions",
-        style = "text-align: center;"
-      ),
-      highchartOutput("sc_proportion_hc"),
-      h5("The table of complete cellular proportions across lesions",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "sc_proportion_table"
-      ),
-      h4("Pseudo-tumorigenesis trajectory analysis",
-        style = "text-align: center;"
-      ),
-      h5("The putative pseudo-tumorigenesis trajectory",
-        style = "text-align: center;"
-      ),
-      highchartOutput("sc_traj_hc"),
-      h5("Table of  putative cellular dynamic genes",
-        style = "text-align: center;"
-      ),
-      DT::dataTableOutput(
-        outputId = "sc_traj_table"
-      ),
-      p(
-        "Notes: The pseudo-tumorigenesis trajectory analysis was
-        performed by the Monocle platform (http://cole-trapnell-lab.
-        github.io/monocle-release/) and the putative cellular
-         dynamic genes referred to those genes whose expression
-          showed significant gradual pattern along the putative
-           pseudo-tumorigenesis trajectory (pseudotime)",
-        style = "text-align:justify;color:black;background-color:lavender;
-      padding:15px;border-radius:10px"
-      )
-    )
-  )
-)
-
-search_page <- fluidPage(
-  tags$head(
-    tags$style(HTML("
-      .column-divider {
-        border-left: 1px solid #ccc;
-        padding-left: 10px;
-        margin-left: 10px;
-      }
-    "))
-  ),
-  fluidRow(
-    column(
-      width = 4,
-      h4("Search by gene",
-        style = "text-align: center;"
-      ),
-      tags$head(
-        tags$style(HTML("
-      .search-container {
-        display: flex;
-        align-items: center;
-      }
-      .search-btn {
-        border: none;
-        background: transparent;
-        cursor: pointer;
-      }
-    "))
-      ),
-      fluidRow(
-        column(
-          9,
-          tags$div(
-            class = "search-container",
-            selectizeInput("search_gene",
-              "Search for a gene:",
-              choices = NULL,
-              multiple = FALSE,
-              width = "100%",
-              options = list(create = TRUE)
-            ),
-            tags$button(
-              icon("search"),
-              class = "search-btn",
-              id = "search_gene_btn",
-              onclick =
-                "Shiny.onInputChange('searchGeneBtnClicked', Math.random())"
-            )
-          )
-        )
-      )
-    ),
-    column(
-      width = 4,
-      h4("Search by organ",
-        style = "text-align: center;"
-      ),
-      fluidRow(
-        column(
-          9,
-          tags$div(
-            class = "search-container",
-            selectizeInput("search_organ",
-              "Search for an organ:",
-              choices = unique(all_data[[1]]$Organ),
-              multiple = FALSE,
-              width = "100%"
-            ),
-            tags$button(
-              icon("search"),
-              class = "search-btn",
-              id = "search_organ_btn",
-              onclick =
-                "Shiny.onInputChange('searchOrganBtnClicked', Math.random())"
-            )
-          )
-        )
-      )
-    ),
-    column(
-      width = 4,
-      h4("Search by project",
-        style = "text-align: center;"
-      ),
-      selectizeInput(
-        inputId = "search_project",
-        label = "Project ID",
-        choices = c(""),
-        options = list(
-          valueField = "id",
-          labelField = "name",
-          searchField = "name",
-          create = FALSE,
-          maxItems = 1,
-          placeholder = "Input project"
-        )
-      )
-    )
-  ),
-  p(
-    "Search notes:
-        The PreAtlas provides three main search modules, including",
-    strong("Search by gene, Search by organ, Search by project."),
-    " Here, the Search by gene module enable to provide basic ",
-    "information, associated organs or",
-    " premalignant diseases, ",
-    "associated cell types, associated drugs and network ",
-    "associations for any input gene symbol or Entrez ID. The",
-    strong("Seach by organ"),
-    "module enable to provide curated related transcriptomic ",
-    "datasets,  associated cellular components and their ",
-    "proportions, associated dynamic genes and associated ",
-    "therapeutic drugs for diverse",
-    " premalignant disease of any ",
-    "input organ.",
-    style = "text-align:justify;color:black;background-color:lavender;
-          padding:15px;border-radius:10px"
-  )
-)
-
-search_gene_page <- fluidPage(
-  h3("Search gene", style = "text-align: center;"),
-  textOutput("gene_name_text"),
-  fluidRow(
-    column(
-      width = 6,
-      h4("Basic information",
-        style = "text-align: center;"
-      ),
-      # dataTableOutput("gene_basic_table"),
-      uiOutput("gene_basic_table"),
-      h4("Basic information 2",
-        style = "text-align: center;"
-      ),
-      h5("Curated knowledges", style = "text-align: center;"),
-      dataTableOutput("gene_knowledge_table"),
-      h5("Omics-derived", style = "text-align: center;"),
-      dataTableOutput("gene_omics_table")
-    ),
-    column(
-      width = 6,
-      h4("Associated cell types",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("gene_celltype_table"),
-      h4("Associated drugs",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("gene_drug_table"),
-      h4("Multiple network neighbours",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("gene_network_table")
-    )
-  )
-)
-
-search_organ_page <- fluidPage(
-  h3("Search organ", style = "text-align: center;"),
-  textOutput("organ_name_text"),
-  fluidRow(
-    column(
-      width = 6,
-      h4("Associated datasets",
-        style = "text-align: center;"
-      ),
-      h5("Bulk",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_bulk_table"),
-      h5("Single-cell",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_sc_table"),
-      h4("Associated dynamic cellular components",
-        style = "text-align: center;"
-      ),
-      h5("Bulk (Cibersort)",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_dyn_bulk_table"),
-      h5("Single-cell",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_dyn_sc_table")
-    ),
-    column(
-      width = 6,
-      h4("Associated dynamic genes",
-        style = "text-align: center;"
-      ),
-      h5("Bulk",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_dyng_bulk_table"),
-      h5("Single-cell",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_dyng_sc_table"),
-      h4("Associated drugs",
-        style = "text-align: center;"
-      ),
-      h5("Database-derived",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_drug_db_table"),
-      h4("Literature-derived",
-        style = "text-align: center;"
-      ),
-      dataTableOutput("organ_drug_lit_table")
-    )
-  )
-)
-
-
-analyze_page <- fluidPage(
-  h3("Brief introduction to the analysis modules in PreAtlas",
-    style = "text-align: center;"
-  ),
-  tags$style(HTML("
-    .clickable-image {
-      cursor: pointer;
-    }
-
-    .image-container {
-      border: 1px solid black;
-      padding: 10px;
-      text-align: center;
-    }
-  ")),
-  p(
-    "Here, four interactive analytical and visualization modules haven been
-    packaged in PreAtlas to in-depth investigate these datasets, including
-    Gene Expression Analyze (GEA), Cellular Component Analyze (CCA),
-    Dynamic Gene Analyze (DGA) and Multiple Network analyze (MNA).
-    Here, the GEA module enable to dissect the gene-level distribution
-    across diverse cell types and/or pathological lesions while the CCA
-    Module enable to dissect the cellular-level distribution based on either
-    cell type annotations within scRNA-seq data or deconvoluted TME cells
-    within the bulk transcriptomic data. Of note, the DBA module could identify
-    premalignant-related dynamic genes as potential cancer risk-screening and
-    early-diagnosis biomarkers, which were defined as those showing gradually
-    dysregulated (increase or decrease) expression patterns along the
-    pathologically dynamic evolution or putative pseudo-tumorigenesis
-    trajectories. Finally, the MNA module enable to perform the network
-    analysis for systematically associating premalignant-related multiple
-    information, including diseases, genes, cell types and drugs, allowing
-    for uncovering the evolution and intervention mechanism underlying
-    premalignant diseases from the holistic view.
-    ",
-    style = "text-align:justify;color:black;background-color:lavender;
-          padding:15px;border-radius:10px"
-  ),
-  fluidRow(
-    column(
-      4,
-      div(
-        class = "image-container",
-        tags$h4("Gene Expression Analyze (GEA)",
-          style = "text-align: center;"
-        ),
-        tags$img(
-          class = "clickable-image",
-          src = "img/analyze_centre.jpg",
-          width = "50%",
-          onclick = paste0(
-            "window.location.href='",
-            route_link("analyze/GEA"),
-            "'"
-          )
-        ),
-        tags$br()
-      ),
-      tags$br(),
-      div(
-        class = "image-container",
-        tags$h4("Dynamic Gene Analyze (DGA)",
-          style = "text-align: center;"
-        ),
-        tags$img(
-          class = "clickable-image",
-          src = "img/analyze_centre.jpg",
-          width = "50%",
-          onclick = paste0(
-            "window.location.href='",
-            route_link("analyze/DGA"),
-            "'"
-          )
-        ),
-        tags$br()
-      )
-    ),
-    column(
-      4,
-      tags$img(
-        src = "img/analyze_centre.jpg",
-        width = "100%"
-      )
-    ),
-    column(
-      4,
-      div(
-        class = "image-container",
-        tags$h4("Cellular Component Analyze (CCA)",
-          style = "text-align: center;"
-        ),
-        tags$img(
-          class = "clickable-image",
-          src = "img/analyze_centre.jpg",
-          width = "50%",
-          onclick = paste0(
-            "window.location.href='",
-            route_link("analyze/CCA"),
-            "'"
-          )
-        ),
-        tags$br()
-      ),
-      tags$br(),
-      div(
-        class = "image-container",
-        tags$h4("Multiple Network Analyze (MNA)",
-          style = "text-align: center;"
-        ),
-        tags$img(
-          class = "clickable-image",
-          src = "img/analyze_centre.jpg",
-          width = "50%",
-          onclick = paste0(
-            "window.location.href='",
-            route_link("analyze/MNA"),
-            "'"
-          )
-        ),
-        tags$br()
-      )
-    )
-  )
-)
-
-gea_page <- fluidPage(
-  h3("Gene Expression Analyze (GEA) Module",
-    style = "text-align: center;"
-  ),
-  h4("Gene expression distribution across cellular clusters",
-    style = "text-align: center;"
-  ),
-  fluidRow(
-    column(
-      width = 5,
-      h4("UMAP plot", style = "text-align: center;"),
-      highchartOutput("gea_umap_plot")
-    ),
-    column(
-      width = 1,
-      selectizeInput(
-        "gea_umap_organ",
-        "Organ",
-        choices = NULL
-      ),
-      selectizeInput(
-        "gea_umap_proj",
-        "Project ID",
-        choices = NULL
-      ),
-      selectizeInput(
-        "gea_umap_gene",
-        "Gene",
-        choices = NULL
-      ),
-      selectizeInput(
-        "gea_umap_lesion",
-        "Lesions",
-        choices = NULL,
-        multiple = TRUE
-      ),
-      selectizeInput(
-        "gea_umap_cluter",
-        "Clusters",
-        choices = NULL,
-        multiple = TRUE
-      )
-    ),
-    column(
-      width = 5,
-      h4("Box plot", style = "text-align: center;"),
-      highchartOutput("gea_box_plot")
-    ),
-    column(
-      width = 1,
-      selectizeInput(
-        "gea_box_organ",
-        "Organ",
-        choices = NULL
-      ),
-      selectizeInput(
-        "gea_box_proj",
-        "Project ID",
-        choices = NULL
-      ),
-      selectizeInput(
-        "gea_box_gene",
-        "Gene",
-        choices = NULL
-      )
-    )
-  )
-)
-
-
-cca_page <- fluidPage(
-  h3("Cellular Component Analyze (CCA) Module",
-    style = "text-align: center;"
-  ),
-  h4("G Cellular distribution across lesions",
-    style = "text-align: center;"
-  ),
-  fluidRow(
-    column(
-      width = 5,
-      h4("Boxplot plot (CIBERSORTx based on bulk data)",
-        style = "text-align: center;"
-      ),
-      highchartOutput("cca_bulk_hc")
-    ),
-    column(
-      width = 1,
-      selectizeInput(
-        "cca_bulk_organ",
-        "Organ",
-        choices = NULL
-      ),
-      selectizeInput(
-        "cca_bulk_proj",
-        "Project ID",
-        choices = NULL
-      )
-    ),
-    column(
-      width = 5,
-      h4("Barplot plot (based on single-cell data)",
-        style = "text-align: center;"
-      ),
-      highchartOutput("cca_sc_hc")
-    ),
-    column(
-      width = 1,
-      selectizeInput(
-        "cca_sc_organ",
-        "Organ",
-        choices = NULL
-      ),
-      selectizeInput(
-        "cca_sc_proj",
-        "Project ID",
-        choices = NULL
-      )
-    )
-  )
-)
-
-dga_page <- fluidPage(
-  h3("Dynamic Gene Analyze (DGA) Module",
-    style = "text-align: center;"
-  ),
-  h4("Dynamic genes across lesions",
-    style = "text-align: center;"
-  ),
-  fluidRow(
-    column(
-      width = 4,
-      h4("Boxplot (bulk data)",
-        style = "text-align: center;"
-      ),
-      fluidRow(
-        column(
-          width = 8,
-          highchartOutput("dga_bulk_hc")
-        ),
-        column(
-          width = 4,
-          selectizeInput(
-            "dga_bulk_organ",
-            "Organ",
-            choices = NULL
-          ),
-          selectizeInput(
-            "dga_bulk_proj",
-            "Project ID",
-            choices = NULL
-          ),
-          selectizeInput(
-            "dga_bulk_gene",
-            "Gene",
-            choices = NULL
-          )
-        )
-      )
-    ),
-    column(
-      width = 8,
-      h4("Pseudo-timurigenesis plot (single-cell data)",
-        style = "text-align: center;"
-      ),
-      fluidRow(
-        column(
-          width = 6,
-          h5("Lesions",
-            style = "text-align: center;"
-          ),
-          fluidRow(
-            column(
-              width = 8,
-              highchartOutput("dga_sc_lesion_hc")
-            ),
-            column(
-              width = 4,
-              selectizeInput(
-                "dga_sc_lesion_organ",
-                "Organ",
-                choices = NULL
-              ),
-              selectizeInput(
-                "dga_sc_lesion_proj",
-                "Project ID",
-                choices = NULL
-              )
-            )
-          )
-        ),
-        column(
-          width = 6,
-          h5("Expression",
-            style = "text-align: center;"
-          ),
-          fluidRow(
-            column(
-              width = 8,
-              highchartOutput("dga_sc_exp_hc")
-            ),
-            column(
-              width = 2,
-              selectizeInput(
-                "dga_sc_exp_organ",
-                "Organ",
-                choices = NULL
-              ),
-              selectizeInput(
-                "dga_sc_exp_proj",
-                "Project ID",
-                choices = NULL
-              ),
-              selectizeInput(
-                "dga_sc_exp_gene",
-                "Gene",
-                choices = NULL
-              )
-            )
-          )
-        )
-      )
-    )
-  )
-)
+source("R/home_page.R")
+source("R/browse_page.R")
+source("R/search_page.R")
+source("R/analyze_page.R")
+source("R/other_pages.R")
 
 
 pages <- list()
@@ -845,6 +22,8 @@ for (i in 1:nrow(all_data[[4]])) {
       as.character(all_data[[4]][i, ])
     )
 }
+
+
 pages[["browse/bulk"]] <- browse_bulk_page
 pages[["browse/sc"]] <- browse_sc_page
 pages[["search"]] <- search_page
@@ -854,6 +33,10 @@ pages[["analyze"]] <- analyze_page
 pages[["analyze/GEA"]] <- gea_page
 pages[["analyze/CCA"]] <- cca_page
 pages[["analyze/DGA"]] <- dga_page
+pages[["analyze/MNA"]] <- mna_page
+pages[["download"]] <- download_page
+pages[["contact"]] <- contact_page
+pages[["documentation"]] <- document_page
 
 
 routes_list <- lapply(seq_along(pages), function(i) {
@@ -901,6 +84,12 @@ make_nodes <- function(leaves) {
 
 ui <- fluidPage(
   useShinyjs(),
+   tags$head(
+    # 设置网站图标
+    tags$link(rel = "shortcut icon", href = "img/logo.ico"),
+    # 设置页面标题
+    tags$title("Premalignant Disease Atlas")
+  ),
   div(tags$img(src = "img/banner.jpg", width = "100%")),
   tags$ul(
     tags$li(a(href = route_link("/"), icon("home"), "Home")),
@@ -1115,36 +304,38 @@ server <- function(input, output, session) {
         ### Dynamic
         plot_data <- all_data[[7]] %>%
           filter(`Project ID` %in% bulk_id)
-        is_log <- max(plot_data$expr_mean) > 1000
-        #### line chart
-        output$bulk_dynamic_hc <- renderHighchart({
-          hchart(plot_data, "line",
-            hcaes(
-              x = `Disease Name`,
-              y = expr_mean,
-              group = Gene,
-              name = Gene
-            ),
-            showInLegend = TRUE
-          ) %>%
-            hc_yAxis(
-              title = list(text = "Mean Expression"),
-              type = ifelse(is_log, "logarithmic", "spline")
+        if (dim(plot_data)[1] > 0) {
+          is_log <- max(plot_data$expr_mean) > 1000
+          #### line chart
+          output$bulk_dynamic_hc <- renderHighchart({
+            hchart(plot_data, "line",
+              hcaes(
+                x = `Disease Name`,
+                y = expr_mean,
+                group = Gene,
+                name = Gene
+              ),
+              showInLegend = TRUE
             ) %>%
-            hc_xAxis(title = list(text = "Stages")) %>%
-            hc_tooltip(
-              useHTML = T,
-              formatter = JS("
-                function() {
-                    outHTML = '<br> <b>Gene</b>: ' + this.point.Gene +
-                      '<br> <b>Mean Expression</b>: ' + this.point.expr_mean +
-                      '<br> <b>Direction</b>: ' + this.point.Direction +
-                      '<br> <b>P-value (FDR)</b>: ' + this.point.FDR
-                    return(outHTML)
-                }
-            ")
-            )
-        })
+              hc_yAxis(
+                title = list(text = "Mean Expression"),
+                type = ifelse(is_log, "logarithmic", "spline")
+              ) %>%
+              hc_xAxis(title = list(text = "Stages")) %>%
+              hc_tooltip(
+                useHTML = T,
+                formatter = JS("
+                  function() {
+                      outHTML = '<br> <b>Gene</b>: ' + this.point.Gene +
+                        '<br> <b>Mean Expression</b>: ' + this.point.expr_mean +
+                        '<br> <b>Direction</b>: ' + this.point.Direction +
+                        '<br> <b>P-value (FDR)</b>: ' + this.point.FDR
+                      return(outHTML)
+                  }
+              ")
+              )
+          })
+        }
         #### dynamic table
         output$bulk_dynamic_table <- renderDataTable(
           my_data_table(plot_data %>%
@@ -1565,6 +756,12 @@ server <- function(input, output, session) {
     runjs(sprintf("window.open('%s', '_self')", target_url))
   })
 
+  updateSelectizeInput(
+    session,
+    "search_organ",
+    choices = unique(all_data[[1]]$Organ),
+    server = T
+  )
   observeEvent(input$searchOrganBtnClicked, {
     target_url <- paste0(
       "#!/search/organ?organ_query=",
@@ -1932,48 +1129,103 @@ server <- function(input, output, session) {
       server = T
     )
 
-    observeEvent(input$dga_sc_lesion_proj, {
-      data_filter_2 <- data_filter_1 %>%
-        filter(`Project ID` == input$dga_sc_lesion_proj)
-      if (dim(data_filter_2)[1] > 0) {
-        output$dga_sc_lesion_hc <- renderHighchart({
-          data_filter_2 %>%
-            hchart(
-              "scatter",
-              hcaes(
-                x = component1,
-                y = component2,
-                group = Lesion
-              )
-            ) %>%
-            hc_tooltip(
-              useHTML = T,
-              formatter = JS("
-                function() {
-                    outHTML = '<b>Pseudotime</b>: ' +
-                     this.point.Pseudotime_Value +
-                    '<br> <b>Disease lesion</b>: ' + this.point.Lesion
-                    return(outHTML)
-                }
-                ")
-            ) %>%
-            hc_plotOptions(
-              scatter = list(
-                marker = list(
-                  radius = 2.5
-                )
-              )
-            ) %>%
-            hc_xAxis(
-              title = list(text = "Component 1")
-            ) %>%
-            hc_yAxis(
-              title = list(text = "Component 2")
-            )
-        })
-      }
-    })
+    # observeEvent(input$dga_sc_lesion_proj, {
+    #   data_filter_2 <- data_filter_1 %>%
+    #     filter(`Project ID` == input$dga_sc_lesion_proj)
+    #   if (dim(data_filter_2)[1] > 0) {
+    #     output$dga_sc_lesion_hc <- renderHighchart({
+    #       data_filter_2 %>%
+    #         select(-c(Gene, Expression_value)) %>%
+    #         distinct() %>%
+    #         hchart(
+    #           "scatter",
+    #           hcaes(
+    #             x = component1,
+    #             y = component2,
+    #             group = Lesion
+    #           )
+    #         ) %>%
+    #         hc_tooltip(
+    #           useHTML = T,
+    #           formatter = JS("
+    #             function() {
+    #                 outHTML = '<b>Pseudotime</b>: ' +
+    #                  this.point.Pseudotime_Value +
+    #                 '<br> <b>Disease lesion</b>: ' + this.point.Lesion
+    #                 return(outHTML)
+    #             }
+    #             ")
+    #         ) %>%
+    #         hc_plotOptions(
+    #           scatter = list(
+    #             marker = list(
+    #               radius = 2.5
+    #             )
+    #           )
+    #         ) %>%
+    #         hc_xAxis(
+    #           title = list(text = "Component 1")
+    #         ) %>%
+    #         hc_yAxis(
+    #           title = list(text = "Component 2")
+    #         )
+    #     })
+    #   }
+    # })
   })
+
+  updateSelectizeInput(
+    session,
+    "dga_sc_exp_organ",
+    choices = unique(all_data[[25]]$Organ),
+    server = T
+  )
+
+  # observeEvent(input$dga_sc_exp_organ, {
+  #   data_filter_1 <- all_data[[25]] %>%
+  #     filter(Organ == input$dga_sc_exp_organ)
+  #   updateSelectizeInput(
+  #     session,
+  #     "dga_sc_exp_proj",
+  #     choices = unique(data_filter_1 %>%
+  #       pull(`Project ID`) %>%
+  #       unlist()),
+  #     server = T
+  #   )
+  #   observeEvent(input$dga_sc_exp_proj, {
+  #     data_filter_2 <- data_filter_1 %>%
+  #       filter(`Project ID` == input$dga_sc_exp_proj)
+  #     updateSelectizeInput(
+  #       session,
+  #       "dga_sc_exp_gene",
+  #       choices = unique(data_filter_2 %>%
+  #         pull(Gene) %>%
+  #         unlist()),
+  #       server = T
+  #     )
+  #     observeEvent(input$dga_sc_exp_gene, {
+  #       data_filter_3 <- data_filter_2 %>%
+  #         filter(Gene == input$dga_sc_exp_gene)
+  #       if (dim(data_filter_3)[1] > 0) {
+  #         output$dga_sc_exp_hc <- renderHighchart({
+  #           data_filter_3 %>%
+  #             arrange(Pseudotime_Value) %>%
+  #             hchart(
+  #               type = "spline",
+  #               hcaes(x = Pseudotime_Value, y = fitted_expr)
+  #             )
+  #         })
+  #       }
+  #     })
+  #   })
+  # })
+
+
+  updateSelectizeInput(
+    session,
+    "mna_organ",
+    choices = unique(all_data[[26]]$Organ),
+  )
 }
 
 
